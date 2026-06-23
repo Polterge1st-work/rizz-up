@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RizzUp — умные ответы в Telegram</title>
+<meta name="description" content="Telegram-бот, который генерирует три варианта ответа на любое сообщение за секунды. 7 запросов в день бесплатно.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;900&family=Space+Grotesk:wght@300;400;500;600&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07040C;
+  --surface: #120B1E;
+  --surface2: #1A1028;
+  --hero-bg: #1E0D33;
+  --accent: #7C3AED;
+  --accent-hover: #6D28D9;
+  --accent-light: #A78BFA;
+  --accent-dim: rgba(124,58,237,0.12);
+  --text: #F0EAF8;
+  --text-muted: #9B8FB0;
+  --text-dim: #4A3D62;
+  --border: rgba(124,58,237,0.18);
+  --border-hover: rgba(167,139,250,0.4);
+  --glow-sm: 0 0 24px rgba(124,58,237,0.25);
+  --glow-md: 0 0 48px rgba(124,58,237,0.35);
+  --r: 16px;
+  --r-sm: 10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;line-height:1.6}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(7,4,12,0.75);backdrop-filter:blur(20px);border-bottom:1px solid rgba(124,58,237,0.08)}
+.nav-inner{max-width:1080px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:16px 24px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo svg{width:34px;height:34px}
+.logo-text{font-family:'Unbounded',sans-serif;font-weight:900;font-size:17px;color:var(--text);letter-spacing:-0.5px}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;background:var(--accent);color:#fff;text-decoration:none;border-radius:100px;font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;transition:background .2s,box-shadow .2s}
+.nav-cta:hover{background:var(--accent-hover);box-shadow:0 0 24px rgba(124,58,237,0.5)}
+
+/* HERO */
+#hero{position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;overflow:hidden}
+#hero-canvas{position:absolute;inset:0;pointer-events:none}
+.hero-glow-orb{position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,0.18) 0%,transparent 65%);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.hero-content{position:relative;z-index:1;max-width:780px}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.28);border-radius:100px;font-size:13px;font-weight:500;color:var(--accent-light);margin-bottom:36px;letter-spacing:0.02em}
+.hero-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;animation:pulsedot 2s infinite}
+@keyframes pulsedot{0%,100%{opacity:1}50%{opacity:.35}}
+h1{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(32px,5.5vw,66px);line-height:1.08;letter-spacing:-0.03em;margin-bottom:24px;color:#F0EAF8}
+.h1-accent{background:linear-gradient(135deg,#A78BFA 0%,#7C3AED 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(16px,2.2vw,20px);color:var(--text-muted);max-width:520px;margin:0 auto 44px;font-weight:400;line-height:1.72}
+.hero-buttons{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin-bottom:72px}
+.btn-primary{display:inline-flex;align-items:center;gap:10px;padding:16px 32px;background:var(--accent);color:#fff;text-decoration:none;border-radius:100px;font-size:16px;font-weight:600;font-family:'Space Grotesk',sans-serif;transition:background .2s,box-shadow .2s,transform .2s}
+.btn-primary:hover{background:var(--accent-hover);box-shadow:0 0 36px rgba(124,58,237,0.6);transform:translateY(-2px)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;background:transparent;color:var(--text-muted);text-decoration:none;border-radius:100px;border:1px solid var(--border);font-size:15px;font-weight:500;font-family:'Space Grotesk',sans-serif;transition:border-color .2s,color .2s;cursor:pointer;outline:none}
+.btn-ghost:hover{border-color:var(--border-hover);color:var(--accent-light)}
+.hero-stats{display:flex;align-items:center;justify-content:center;gap:48px;flex-wrap:wrap}
+.stat{text-align:center}
+.stat-num{font-family:'Unbounded',sans-serif;font-weight:700;font-size:26px;color:var(--text);letter-spacing:-0.02em}
+.stat-label{font-size:12px;color:var(--text-dim);margin-top:4px;letter-spacing:0.03em}
+.stat-div{width:1px;height:40px;background:var(--border)}
+
+/* SECTION WRAP */
+.section-wrap{padding:100px 24px;max-width:1080px;margin:0 auto}
+.section-label{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent-light);margin-bottom:14px}
+.section-title{font-family:'Unbounded',sans-serif;font-weight:700;font-size:clamp(26px,4vw,42px);line-height:1.15;letter-spacing:-0.02em;margin-bottom:14px}
+.section-sub{font-size:17px;color:var(--text-muted);max-width:460px;line-height:1.72}
+
+/* REVEAL */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .65s ease,transform .65s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:.1s}
+.reveal-delay-2{transition-delay:.2s}
+.reveal-delay-3{transition-delay:.3s}
+
+/* SECTION DIVIDER */
+.section-divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:0 auto}
+
+/* HOW IT WORKS */
+.demo-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:start;margin-top:56px}
+.demo-step-label{font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);margin-bottom:20px}
+.demo-intro-title{font-family:'Unbounded',sans-serif;font-size:18px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.demo-intro-desc{font-size:15px;color:var(--text-muted);margin-bottom:28px;line-height:1.65}
+.demo-examples{display:flex;flex-direction:column;gap:10px}
+.demo-ex-btn{display:flex;flex-direction:column;gap:4px;padding:14px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-sm);cursor:pointer;text-align:left;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;transition:border-color .25s,background .25s,box-shadow .25s;width:100%}
+.demo-ex-btn:hover,.demo-ex-btn.active{border-color:var(--accent);background:rgba(124,58,237,0.07);box-shadow:var(--glow-sm)}
+.demo-ex-tag{font-size:11px;color:var(--text-dim);font-weight:600;letter-spacing:0.05em;margin-bottom:2px}
+.demo-ex-msg{color:var(--text-muted);font-size:14px}
+.demo-ex-btn.active .demo-ex-msg{color:var(--text)}
+
+/* TELEGRAM CHAT */
+.tg-chat{background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;font-family:'Inter',sans-serif;display:flex;flex-direction:column;min-height:480px}
+.tg-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(18,11,30,0.9);border-bottom:1px solid var(--border)}
+.tg-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#4C1D95);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tg-info .tg-name{font-size:14px;font-weight:500;color:var(--text);line-height:1.2}
+.tg-info .tg-status{font-size:11px;color:#22c55e}
+.tg-msgs{flex:1;padding:16px 14px;display:flex;flex-direction:column;gap:8px;min-height:220px}
+.tg-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text-dim);font-size:13px;text-align:center;gap:10px;padding:24px}
+.tg-placeholder svg{opacity:.3}
+.msg{max-width:74%;padding:10px 14px;border-radius:16px;font-size:14px;line-height:1.5;animation:msgpop .28s ease}
+@keyframes msgpop{from{opacity:0;transform:translateY(8px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.msg-in{background:rgba(255,255,255,0.06);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px}
+.msg-out{background:var(--accent);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.typing-bubble{align-self:flex-start;background:rgba(255,255,255,0.06);padding:12px 16px;border-radius:16px;border-bottom-left-radius:4px}
+.typing-dots{display:flex;gap:5px;align-items:center}
+.typing-dots span{width:7px;height:7px;background:var(--accent-light);border-radius:50%;animation:typingdot 1.2s infinite}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
+@keyframes typingdot{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.tg-variants-panel{border-top:1px solid var(--border);background:rgba(7,4,12,0.5);padding:12px 14px}
+.tg-variants-label{font-size:10px;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-dim);font-weight:700;margin-bottom:10px}
+.variant-chips{display:flex;flex-direction:column;gap:7px}
+.variant-chip{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.18);border-radius:10px;font-size:13px;color:var(--text);cursor:pointer;transition:background .2s,border-color .2s;opacity:0;transform:translateX(12px)}
+.variant-chip.shown{opacity:1;transform:translateX(0);transition:opacity .3s ease,transform .3s ease,background .2s,border-color .2s}
+.variant-chip:hover{background:rgba(124,58,237,0.16);border-color:rgba(167,139,250,0.35)}
+.v-num{font-size:10px;font-weight:900;color:var(--accent-light);font-family:'Unbounded',sans-serif;flex-shrink:0;margin-top:2px}
+
+/* FEATURES */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px;margin-top:56px}
+.feat-card{padding:32px 26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);transition:border-color .3s,box-shadow .3s,transform .3s}
+.feat-card:hover{border-color:rgba(167,139,250,0.4);box-shadow:0 0 48px rgba(124,58,237,0.22);transform:translateY(-5px)}
+.feat-icon{width:52px;height:52px;background:rgba(124,58,237,0.12);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:20px;border:1px solid rgba(124,58,237,0.18)}
+.feat-title{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.feat-desc{font-size:14px;color:var(--text-muted);line-height:1.65}
+.feat-tag{display:inline-block;margin-top:16px;padding:3px 10px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.22);border-radius:100px;font-size:11px;font-weight:700;color:var(--accent-light);letter-spacing:.05em}
+
+/* PRICING */
+.pricing-header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:16px}
+.pricing-free-note{font-size:13px;color:var(--text-muted);background:rgba(124,58,237,0.08);border:1px solid var(--border);padding:8px 16px;border-radius:100px}
+.pricing-free-note strong{color:var(--text)}
+.pricing-toggle{display:inline-flex;background:var(--surface);border:1px solid var(--border);border-radius:100px;padding:4px;margin-bottom:36px}
+.ptog-btn{padding:10px 24px;border-radius:100px;border:none;background:transparent;color:var(--text-muted);font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;cursor:pointer;transition:all .2s}
+.ptog-btn.active{background:var(--accent);color:#fff}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.plan-card{padding:30px 26px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);transition:border-color .3s,box-shadow .3s,transform .3s;position:relative;overflow:hidden}
+.plan-card::before{content:'';position:absolute;inset:0;border-radius:var(--r);opacity:0;transition:opacity .3s;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,0.12),transparent 70%)}
+.plan-card:hover::before{opacity:1}
+.plan-card.featured{border-color:var(--accent);box-shadow:0 0 48px rgba(124,58,237,0.28)}
+.plan-card:not(.featured):hover{border-color:rgba(167,139,250,0.3);transform:translateY(-4px)}
+.plan-card.featured:hover{box-shadow:0 0 72px rgba(124,58,237,0.45);transform:translateY(-4px)}
+.plan-pop-tag{position:absolute;top:18px;right:18px;padding:4px 12px;background:var(--accent);color:#fff;font-size:10px;font-weight:900;border-radius:100px;letter-spacing:.07em;text-transform:uppercase;font-family:'Space Grotesk',sans-serif}
+.plan-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:16px}
+.plan-price{font-family:'Unbounded',sans-serif;font-size:42px;font-weight:900;color:var(--text);letter-spacing:-.03em;line-height:1}
+.plan-price sup{font-size:18px;font-weight:700;vertical-align:super;margin-right:2px}
+.plan-period{font-size:14px;color:var(--text-muted);margin-top:8px;margin-bottom:24px}
+.plan-savings{font-size:12px;font-weight:600;color:#22c55e;background:rgba(34,197,94,0.1);border-radius:6px;padding:2px 8px;display:inline-block;margin-left:8px}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:11px;margin-bottom:28px}
+.plan-features li{display:flex;align-items:flex-start;gap:9px;font-size:14px;color:var(--text-muted);line-height:1.5}
+.plan-features li::before{content:'✓';color:var(--accent-light);font-weight:700;flex-shrink:0;margin-top:1px}
+.plan-cta{display:block;text-align:center;padding:13px;border-radius:100px;font-size:15px;font-weight:600;font-family:'Space Grotesk',sans-serif;text-decoration:none;transition:all .2s;position:relative;z-index:2}
+.plan-card.featured .plan-cta{background:var(--accent);color:#fff}
+.plan-card.featured .plan-cta:hover{background:var(--accent-hover);box-shadow:0 0 24px rgba(124,58,237,.55)}
+.plan-card:not(.featured) .plan-cta{background:transparent;border:1px solid var(--border-hover);color:var(--accent-light)}
+.plan-card:not(.featured) .plan-cta:hover{background:var(--accent-dim)}
+.pricing-packs{display:none}
+.pricing-subs{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pricing-packs.show,.pricing-subs.show{display:grid}
+
+/* FAQ */
+.faq-list{margin-top:48px;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.faq-item{border-bottom:1px solid var(--border)}
+.faq-item:last-child{border-bottom:none}
+.faq-q{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 28px;cursor:pointer;background:var(--surface);font-size:16px;font-weight:500;color:var(--text);user-select:none;transition:background .2s}
+.faq-q:hover{background:rgba(124,58,237,0.05)}
+.faq-icon{width:26px;height:26px;flex-shrink:0;border-radius:50%;border:1px solid var(--border-hover);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--accent-light);transition:transform .3s,background .2s;font-weight:300}
+.faq-item.open .faq-icon{transform:rotate(45deg);background:var(--accent-dim)}
+.faq-a{max-height:0;overflow:hidden;background:var(--surface);transition:max-height .4s ease}
+.faq-item.open .faq-a{max-height:200px}
+.faq-a-inner{padding:0 28px 22px;font-size:15px;color:var(--text-muted);line-height:1.72;border-top:1px solid rgba(124,58,237,.1);padding-top:18px}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:48px 40px;display:flex;align-items:flex-start;justify-content:space-between;gap:40px;flex-wrap:wrap;max-width:1080px;margin:0 auto}
+.footer-meta{font-size:13px;color:var(--text-dim);margin-top:14px;line-height:1.9}
+.footer-links{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.footer-links a{font-size:14px;color:var(--text-muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:var(--accent-light)}
+.footer-links .footer-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .demo-layout{grid-template-columns:1fr}
+  .features-grid{grid-template-columns:1fr 1fr}
+  .pricing-subs,.pricing-packs{grid-template-columns:1fr!important}
+}
+@media(max-width:640px){
+  nav{padding:0}
+  .logo-text{font-size:15px}
+  .features-grid{grid-template-columns:1fr}
+  .hero-stats{gap:24px}
+  .stat-div{display:none}
+  footer{flex-direction:column;padding:40px 20px}
+  .section-wrap{padding:80px 20px}
+  .faq-q{padding:18px 20px;font-size:15px}
+  .faq-a-inner{padding:0 20px 18px;padding-top:14px}
+  .nav-inner{max-width:100%;width:100%;padding:12px 16px}
+  .nav-cta{padding:9px 16px;font-size:13px}
+  h1{font-size:clamp(28px,8vw,42px)}
+}
+.placeholder-mobile{display:none}
+@media(max-width:900px){.placeholder-desktop{display:none}.placeholder-mobile{display:inline}}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}
+  .reveal{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+<div class="nav-inner">
+  <a href="#" class="logo" aria-label="RizzUp">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAABQCAYAAACOEfKtAAAPHUlEQVR42u1ce3Bc5X09v+/eXa0kvyXL+BVToC7IQEtLBkhCbV5TCikzhVlNHCiOgQITTyfNpCHTgWG9SQeakoQSEhKoyQTStImWh0lCA4EUuRlnKBgag6UADS7F5mEb27Ieq939vt/v9I97V1IGOgGixTLeo7laze5q597znfN7fVcCmmiiiSaaaKKJJppoookmmngLsJdRk4V3iVtuuaUFAAgKSZlu5+emu+o+NJZft+1Le74gEIoICwW6JoFvA339fQIAMhbvPDrXed3ADcP33Fy4f06xKMZpROK0JXDPwComZ+hfe3U3tFNmXHRe7pyfPHLDf3ZIUWy6KHHaEoh88lANzMYRor0HQnW2tX9wMbt/fPdnHm5fD2A6xMRpS+D81MJZy3ZFBJwgGhwNvtPN+OBx7X94lxTFUDr45z9tCVyFVUkyqbrfdwpoIEDJ7DsQ/JJs50U/v3bnGukRPdglzvS1MGAAkGF2ZfAACbFAmDIaG4XNDHO/2Pu5LbORhxEHz8rTkkAW6KQIPrhuYHmWLSeXq0ooIjEAFFeueutsaVuwNCy+WkTYV0DUJHByCQM4QNiJIy6fHWfjEEyhAhoABWB0lQqYY/sVt195e2ZVEdokMEWhUHB9gH33yi2dOWm7YqRiVGNkBlAFMEDMuXJV2R61H3NU5syTBcLefG/UJBDAKqx3xaLYUl127ZxMy7yaNxU4AQASoAlIgSmtFQ7tMud0AJjfnT8ocTCeTuT15hmdUZSw8WMvnDSvZfa64YopicgRAAQEQRGAAA0IAXAqJwHAqhXgYa3Aeib99Klfbl3YvuiuGJlMzavAIDSAtESBJMwIM5OgABgvAgD0H9YEUvoKiHpKohccs3ZDR679hJGKV8A5o0AJmAoYAKsfJiABNZsBAFh/cAiMpwN5jxUQnVGU8JPVe25Y2Db344OjIUBcTEtaEBgAEZAEKONMmQJQVzuYZx8fdNvm4aQo4eGeXcXFbZ1/O1zVYEAsJJwTUAmIQBwhSFRXTyggYMQ+AEAPXFrkHB4EEhQUIFIUfahn3z8sbJ/72eGKBQrjNE8AIGRS0hh/lgBB0gAf7GUA6OuGHEYxkFJKlGc/uvCNOxa0zP3sgbIP3iw2CkwTkowCM6RJY+KRFNAEFoBKxQ/Uq+/DhkAWID0l0Y0X7Pqnxa0dfzk4pl4pMQ0wJcwS4lSTOGeaEpmSq4FQk2i4ahisDD4BAHu6SnxzUU7X6OHrey77x1YyPmOThHs/umvd0hldXxuqBi8OmchJatmJlRWHxMKYNC4gQKO1ZGI3HMovbRz8j2Nvfej8KpJ3jJPIPCMpib6vFFgA3Z6u5CIjabm4WoOZ0SG1KimJ+hRQAmqAMT3qaiRAiLU4QTVUf3DrQ+dVH1tpcZ28AgqOoEhJ9L5Lnz363ksH/rxQKLhGDV/fMwIJShFiPSXRK//oyoxDpqsW4Mi0ULakTauTlMQ8gSoTK08iGHDuQM3bPr97w2T79uZ7oyKKJhA8esmea7rk6GcktMfFYtFKPY251vckC/emdtpw9va/yMbOfjjzie+hgk4VwAwiJISYsDATOYkkQUbq0UYA0rQ9l4leqwzef8kDxz3bm2fUUxKtP95x7uNLjpp73F1LWmaduXNk9MkLv7+sVCjQ9RQbY+eGK7BQoMuXYP949rYPdLpFG1rRsa60uydDihgnVKX1xGGTrGsEra7GJMEIIxmuej9Y3XU9QenvBuvkfffC545dPvf4zbPcrDOHq9CyL3+PoKzqa9x1NlqBsmIAIhDebYPfiaOWrCBz2t3tO/4OiPaLYpYlzQWcAMR4AQgRAknpPJ5YCIYZORe/Vtn/L5c+2L0tl2eEItgD0TvPeuaoRfGyR3PILR4eC7VMJsqOyoHHBV3s7erlIUlgb56upyR624dfXjcvmv3HozUNUYR4TrTkM15rHIMCIuIEoAiEhLiEuPGYz7qVDQLnhqvBRqr7byYofbsh6wsgnvpB28J42QMtyC0+MOZ9LHF2pFqtBOHLANDf3d8wAqWRSQMAvnJq/9yO+KgXcq5lLsXgHBwIi5w4cYm6RAQyqXRJtJiMr+onSdBaMxl3oDb07EUPzz6RaTHeUxK95/zd31zSPv+qwTHvCcaRy4pH9YDqS8dc8KNj32C6PIdUDFy/EpFA2MqFn2pzrR2VoBYMLiTxzWk90yrSTEso0yONg/XsHAxQigkApT4FAD8+F9mekuiGs/77tDlRx1WDZQ1myJgJvBpCQPtrwc8GgPWFxgklbpT6ZJOEGz/ys7lSa/vkaM1IICKSb3QANdWoTNjUMV1R/vrKUibmgRZhP0AZmZnIc1bcUXR08L4mcA5GCGmaa2mJ22XOcoDbVww0jkDXKPUBQHbsd3vakOus1lRVRUwTZQUlgqbK0oksqwoEL1AVeCV8XX0BMHXwCmjAAkDYU5LaHeds+4MWmXH2cEUtmESavI6gJAwQ33oWIJy/+xAjEJuSPV1nrau9gYEQrQ8EFFCd6HXHiUxLGiURjMlzv364MQ+AmdM/feqXW3vzjFq0qycnGfFqpioI6QKpIhodA1jLfeymc+5uP2MTFDhEOpECCq4IscIJW5dAs6eUvYkRLqn10hqvTlwANH0+IY1IiEhjok2QqwZXrnmd4WYsPXHGxVf1lEQdc2dWPBAUEhSoBaCmgFdIuea13bUvnhf+5CJA+NjKxuwdT70CV65yAJBDx2ktkssFVTWKTFZU3bpqhKqlyhQEFSRKdTC6cXtranEa3WhVrZXzbvzmmS+tA6JllUAEo/NKhEB4bwghWZyxGmi+9a8AuL7UFYeAhVeliaTtFAIwCuvDgWCAT5WVqErGY+K4Os3BENSg6eAljZEQGJ3Ugjlfi3JzuOxr5uMFlaBQE0kWRGDmoEEQFNFIJcCF1pO/8eHtJxQhlm/A3vGUE7hiU1q8hXi51zTO1RU3iagwicRkaABoMIvg4FF7bsR239QWxaIBWm/j6q1fUGW54k01kvqwoR4Dk5iahoJgGiNGsJnnAkD37qnfO55yAvPpTUGqWOQDEEgJxjTAywSR6cX69EjVaSRQq9mTb2QfvX64WtkfiYuMpKU1YZJ8RNTg1Gx8gbwZVDmh5pTUqgfMZ04BgBVdU79zN9UEjlf8NNeuCtAo9ZleXXWhXsoYEcwQlPBqICJU1DDkBzcUN62tlMPov2acgxl18u/5YAghSTQhVXMwgTemn0V4M3iDVBQIGh0JAPnS1MfBRnUiYiJimJjtJdadyKwJGamFk4lMrdVF8aDfe9u1W4/cDFDG3PA/l02hFBfUEMySTgWWLkhSL9aTTVBJP1fSnymprTvy3YVssrhTW840ikAajQYgkDAzGJOL9+MlysQRSN8WZbL7KkMPb4+v++vePCNAuKPjl0+PaXmHMOOCmdUJNAqCGScWJFUyLQ0JhNdkRBYUoEXRklkrGlLGTHUrx3rjbgwHKEBCZDIaqM8uHABHAYRwIqE9zmSG/NB9A6P3XfztgdsDnkqGsD0lqX7lpH1bWgRL1YxwERyoICIyK541gk7IdG7IZIpDEvUvGBCoAHYcGp1IKf1MJV9Ob72gmiKoQlVTNY4rL7RE2XjYD37jcwOzL7rrfy+rJNMXYX/aflXVDyS3dsCEEYw2MsIdec/qICxCUKWm1k3UaAiW3D+jNCSlFMs3Pz5UbcQAasoJ7F+ZnKGi1m8EvCkUhIEwplY2Q82C5iQXj+iBb1/3/NxP5sGIsDeNnSqh+nowINDUMbaajW2/9hfL76nq3iscI1ETm0hEmhJoUDWoMRGh2atA0Qqgm7xzNy0JHEjrQGN1c9U8jOqMmqrOoDR4Botczo2Eof4n7K6rC6Drxnq+1cyuamWrqqk3EwhcQPnzBdBd17/03qGw9/4YuagagnpT6PgCBXgGBAuEgOpqyeb7yqm/3kZY2ACg3Dr8eEX373EudspAY4BBERigDICoVNy+v3noV5+qAn2uiOJblhiZqD2bjVyUca0tg7XXbrh26wc2YiUcQano4BdGwoh5qvNUBFOoKRQGhcJoEgwS4H+WfFrfodDKCXvB6LaB40eI8GCEVqiZKgxKRbBgEVrdaBh89uYXf+fhAuiKOCO8qaNJi14Ra61Z+ZER7Ljg+oFF1xZAV9yU7LB98VfL/2ssjGx1aJGgiQq9Jb11UpNH0WjYP1Ku7v33ZErUN+V1YEMGqiWUAABmldsqGP5EoDkxQpJYaC2IHak/TONRBLy5wO1J7yp4vWXPlz7/1LIbk0kPXRFiALA+OfcQWNucYXySN08RB0m/SNP2zKy4wqGNX/2fE3f1glEPpn5r0zWGwB7Nozf66s6jn6zZ4L9lXJsLVlVlgFkQb1VUrLoFAAZ+Q1C/46mTfQF0vWBUJ28yvPL5mtYQNCCYRzAPzxrUKBUdosR2EwD0ozE3YDZsV64beQIUHw1c43TkHEKct0CSzrkyXCbambzvN1/YWxFXj2cBHA0WECwkWwHiAGGYEc+Lx+z1b339hSOfySfkH1ob60WI5QG3YceK/ooOXZ/BrMhrCGoqngHO2W95QcnYTFVnejV4KpQKz5oB2bisb7yKtvI19Qx/aI30x60slgejO3cd+/dlffWBrMzKBAsV0GG0OjY/tfBvVdkGCysCPdQUwdTMoqSI4p6Lv/5c994BlOT/y/DTnkAALAFWAN1IZv9qz/2bs9GMXFIOuuMBSve7JLAIaB69kdJW1qyCpFx3yEY5V8O+NXe+clJfHoxK6GnoLW7vwd1ZQmA9Sjs/NLanuuXPAoZ/mnUzI1L/FBAOoPSO7ZVHMmzIHXHsR4Rtv1cNwzWHbBy5GGP2xppvvXLCdwpgXIIctD8Bm3IUUHBJM1CI1x7xy1uvXrKbn1i69fSEkHc2al8JxgCwev6zP724c7uu6XyZa7pefPWSrqfPSV5/LMb7EclWejKPW7vk+dVrF2+9M3/UI7PTHvVtWflKbMkAwMe7fnH1FQv2cc387by08/l78vN+vvh9Td5kTycWBPLze2dc1rFxJt7mmKSu4ksXblt9+cJXuKZr++a1CwY+OmHt3sPn/8vUSXz7IYAuj97o8sVPn7dm4bbvX7bgxfMnvwZMv/8p816YWt4Z6b3R1Qs2d00S8+GluqlLSHTvVMFNvEvVNtFEE0000UQTTTTRRBPTEP8HU5WBkqJ8sjwAAAAASUVORK5CYII=" alt="" style="width:34px;height:34px;object-fit:contain">
+    <span class="logo-text">RizzUp</span>
+  </a>
+  <a href="https://t.me/RizzUp_chat_bot" class="nav-cta" target="_blank" rel="noopener">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.7 8c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.13-.26.25-.52.25l.19-2.65 4.83-4.37c.21-.19-.05-.29-.32-.1L7.79 14.4 5.25 13.6c-.56-.17-.57-.56.12-.83l9.35-3.61c.47-.17.88.11.92.64z" fill="currentColor"/></svg>
+    Открыть бота
+  </a>
+</div>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+  <div class="hero-glow-orb" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Telegram бот · не тупи в переписке</div>
+    <h1>Не знаешь, что ответить? <span class="h1-accent">Знает RizzUp.</span></h1>
+    <p class="hero-sub">Telegram-бот, который генерирует три варианта ответа на любое сообщение — за секунды. Свайпни нужный, отправь.</p>
+    <div class="hero-buttons">
+      <a href="https://t.me/RizzUp_chat_bot" class="btn-primary" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8l-1.7 8c-.12.56-.46.7-.93.43l-2.57-1.9-1.24 1.19c-.14.13-.26.25-.52.25l.19-2.65 4.83-4.37c-.21-.19.05-.29-.32-.1L7.79 14.4 5.25 13.6c-.56-.17-.57-.56.12-.83l9.35-3.61c.47-.17.88.11.92.64z" fill="currentColor"/></svg>
+        Попробовать бесплатно
+      </a>
+      <button class="btn-ghost" onclick="document.getElementById('demo-section').scrollIntoView({behavior:'smooth'})">
+        Как это работает
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat">
+        <div class="stat-num">12 000+</div>
+        <div class="stat-label">ответов сгенерировано</div>
+      </div>
+      <div class="stat-div" aria-hidden="true"></div>
+      <div class="stat">
+        <div class="stat-num">+1 000</div>
+        <div class="stat-label">новых пользователей за месяц</div>
+      </div>
+      <div class="stat-div" aria-hidden="true"></div>
+      <div class="stat">
+        <div class="stat-num">1 сообщение</div>
+        <div class="stat-label">— и три готовых ответа</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="section-divider"></div>
+
+<!-- HOW IT WORKS -->
+<div class="section-wrap" id="demo-section">
+  <div class="reveal">
+    <div class="section-label">Как это работает</div>
+    <h2 class="section-title">Попробуй прямо здесь</h2>
+    <p class="section-sub">Выбери входящее сообщение — бот мгновенно предложит три варианта ответа</p>
+  </div>
+  <div class="demo-layout">
+    <div class="demo-left reveal reveal-delay-1">
+      <div class="demo-step-label">Входящее сообщение</div>
+      <div class="demo-intro-title">Нажми на пример</div>
+      <div class="demo-intro-desc">В реальном боте ты пересылаешь сообщение или вводишь текст — и получаешь готовые варианты ответа.</div>
+      <div class="demo-examples" id="demo-examples">
+        <button class="demo-ex-btn" data-idx="0">
+          <span class="demo-ex-tag">← Входящее</span>
+          <span class="demo-ex-msg">Привет, чем занимаешься? 😊</span>
+        </button>
+        <button class="demo-ex-btn" data-idx="1">
+          <span class="demo-ex-tag">← Входящее</span>
+          <span class="demo-ex-msg">Ты сегодня свободен вечером?</span>
+        </button>
+        <button class="demo-ex-btn" data-idx="2">
+          <span class="demo-ex-tag">← Входящее</span>
+          <span class="demo-ex-msg">Что-то ты загадочный в последнее время</span>
+        </button>
+      </div>
+    </div>
+    <div class="demo-right reveal reveal-delay-2">
+      <div class="tg-chat" id="tg-chat">
+        <div class="tg-header">
+          <div class="tg-avatar">🔥</div>
+          <div class="tg-info">
+            <div class="tg-name">RizzUp Bot</div>
+            <div class="tg-status">в сети</div>
+          </div>
+        </div>
+        <div class="tg-msgs" id="tg-msgs">
+          <div class="tg-placeholder" id="tg-placeholder">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" stroke="#A78BFA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="placeholder-desktop">Выбери пример слева</span><span class="placeholder-mobile">Выбери пример сверху</span>
+          </div>
+        </div>
+        <div class="tg-variants-panel" id="tg-variants-panel" style="display:none">
+          <div class="tg-variants-label">Варианты ответа</div>
+          <div class="variant-chips" id="variant-chips"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- FEATURES -->
+<div class="section-wrap">
+  <div class="reveal">
+    <div class="section-label">Возможности</div>
+    <h2 class="section-title">Три способа получить ответ</h2>
+    <p class="section-sub">Под любой сценарий — текст, скриншот или длинный контекст переписки</p>
+  </div>
+  <div class="features-grid">
+    <div class="feat-card reveal reveal-delay-1">
+      <div class="feat-icon">💬</div>
+      <div class="feat-title">Ответ на сообщение</div>
+      <div class="feat-desc">Перешли или напиши входящее сообщение — бот мгновенно сгенерирует три разных варианта ответа: уверенный, лёгкий, игривый.</div>
+    </div>
+    <div class="feat-card reveal reveal-delay-2">
+      <div class="feat-icon">📸</div>
+      <div class="feat-title">Анализ скриншота</div>
+      <div class="feat-desc">Пришли скриншот переписки — бот прочитает контекст и предложит подходящий ответ, учитывая весь диалог.</div>
+      <span class="feat-tag">⭐ Premium</span>
+    </div>
+    <div class="feat-card reveal reveal-delay-3">
+      <div class="feat-icon">🔗</div>
+      <div class="feat-title">Контекст переписки</div>
+      <div class="feat-desc">Отправь несколько сообщений подряд — бот накопит контекст до 20 сообщений и ответит максимально точно к ситуации.</div>
+      <span class="feat-tag">⭐ Premium</span>
+    </div>
+  </div>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- PRICING -->
+<div class="section-wrap" id="pricing-section">
+  <div class="reveal pricing-header">
+    <div>
+      <div class="section-label">Тарифы</div>
+      <h2 class="section-title">Начни бесплатно</h2>
+    </div>
+    <div class="pricing-free-note">🎁 <strong>7 запросов в день</strong> — всегда бесплатно</div>
+  </div>
+  <div class="reveal" style="margin-bottom:36px">
+    <div class="pricing-toggle">
+      <button class="ptog-btn active" id="tog-subs" onclick="switchPricing('subs')">Подписки</button>
+      <button class="ptog-btn" id="tog-packs" onclick="switchPricing('packs')">Пакеты запросов</button>
+    </div>
+  </div>
+
+  <!-- SUBSCRIPTIONS -->
+  <div class="pricing-subs show reveal" id="pricing-subs">
+    <div class="plan-card">
+      <div class="plan-name">День</div>
+      <div class="plan-price"><sup>₽</sup>35</div>
+      <div class="plan-period">на 24 часа · 35₽ / день</div>
+      <ul class="plan-features">
+        <li>Безлимитные текстовые ответы</li>
+        <li>Анализ скриншотов</li>
+        <li>Режим контекста переписки</li>
+        <li>3 варианта на каждый запрос</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Начать</a>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">Неделя</div>
+      <div class="plan-price"><sup>₽</sup>99</div>
+      <div class="plan-period">на 7 дней · 14₽ / день</div>
+      <ul class="plan-features">
+        <li>Безлимитные текстовые ответы</li>
+        <li>Анализ скриншотов</li>
+        <li>Режим контекста переписки</li>
+        <li>3 варианта на каждый запрос</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Начать</a>
+    </div>
+    <div class="plan-card featured">
+      <div class="plan-pop-tag">Популярное</div>
+      <div class="plan-name">Месяц <span class="plan-savings">−40%</span></div>
+      <div class="plan-price"><sup>₽</sup>210</div>
+      <div class="plan-period">на 30 дней · 7₽ / день</div>
+      <ul class="plan-features">
+        <li>Безлимитные текстовые ответы</li>
+        <li>Анализ скриншотов</li>
+        <li>Режим контекста переписки</li>
+        <li>3 варианта на каждый запрос</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Оформить подписку</a>
+    </div>
+  </div>
+
+  <!-- PACKAGES -->
+  <div class="pricing-packs reveal" id="pricing-packs" style="display:none;grid-template-columns:repeat(3,1fr);gap:20px">
+    <div class="plan-card">
+      <div class="plan-name">Старт</div>
+      <div class="plan-price"><sup>₽</sup>49</div>
+      <div class="plan-period">30 запросов · 1.63₽ / запрос</div>
+      <ul class="plan-features">
+        <li>Не сгорают — используй когда угодно</li>
+        <li>Отключают дневной лимит</li>
+        <li>Только текстовые запросы</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Купить</a>
+    </div>
+    <div class="plan-card featured">
+      <div class="plan-pop-tag">Выгодно</div>
+      <div class="plan-name">Стандарт</div>
+      <div class="plan-price"><sup>₽</sup>99</div>
+      <div class="plan-period">100 запросов · 0.99₽ / запрос</div>
+      <ul class="plan-features">
+        <li>Не сгорают — используй когда угодно</li>
+        <li>Отключают дневной лимит</li>
+        <li>Только текстовые запросы</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Купить пакет</a>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">Максимум</div>
+      <div class="plan-price"><sup>₽</sup>159</div>
+      <div class="plan-period">250 запросов · 0.64₽ / запрос</div>
+      <ul class="plan-features">
+        <li>Не сгорают — используй когда угодно</li>
+        <li>Отключают дневной лимит</li>
+        <li>Максимальная выгода за запрос</li>
+      </ul>
+      <a href="https://t.me/RizzUp_chat_bot" class="plan-cta" target="_blank" rel="noopener">Купить</a>
+    </div>
+  </div>
+  <p class="reveal" style="margin-top:20px;font-size:13px;color:var(--text-dim);text-align:center">Оплата через Telegram Stars или банковской картой. Пакеты запросов не дают доступа к скриншотам и контексту — только подписка.</p>
+</div>
+
+<div class="section-divider"></div>
+
+<!-- FAQ -->
+<div class="section-wrap">
+  <div class="reveal">
+    <div class="section-label">FAQ</div>
+    <h2 class="section-title">Частые вопросы</h2>
+  </div>
+  <div class="faq-list reveal">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Сколько запросов включено бесплатно?
+        <div class="faq-icon">+</div>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">7 запросов в день — бесплатно и навсегда. Лимит обновляется каждые 24 часа. Если нужно больше — оформи подписку или купи пакет запросов.</div>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Чем пакеты запросов отличаются от подписки?
+        <div class="faq-icon">+</div>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Пакеты — это фиксированное количество текстовых запросов без срока действия. Они не сгорают и заменяют дневной лимит. Подписка даёт безлимит плюс доступ к скриншотам и режиму контекста переписки.</div>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Как работает функция «по скриншоту»?
+        <div class="faq-icon">+</div>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Отправь скриншот переписки прямо в бота — он прочитает текст на изображении, поймёт контекст диалога и предложит три подходящих варианта ответа. Доступно только на подписке.</div>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Безопасно ли отправлять свои переписки?
+        <div class="faq-icon">+</div>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Бот не сохраняет историю твоих переписок после генерации ответа. Данные используются только для формирования ответа в моменте.</div>
+      </div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Как отменить подписку?
+        <div class="faq-icon">+</div>
+      </div>
+      <div class="faq-a">
+        <div class="faq-a-inner">Если оформил через Telegram Stars — отмени в настройках Telegram: Настройки → Звёзды → Подписки. Подписка действует до конца оплаченного периода.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">
+    <a href="#" class="logo" aria-label="RizzUp">
+      <img src="data:image/png;base64,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" alt="" style="width:30px;height:30px;object-fit:contain">
+      <span class="logo-text" style="font-size:16px">RizzUp</span>
+    </a>
+    <div class="footer-meta">
+      ИП Василенко Данила Андреевич<br>
+      ИНН: 481106561874<br>
+      <a href="https://drive.google.com/file/d/1KtmPLkBJFD_IMeYzTEqezskGOWSThoEP/view?usp=sharing" target="_blank" rel="noopener" style="color:var(--accent-light);text-decoration:none;font-size:13px">Публичная оферта</a>
+    </div>
+  </div>
+  <div class="footer-links">
+    <div class="footer-title">Продукт</div>
+    <a href="https://t.me/RizzUp_chat_bot" target="_blank" rel="noopener">Telegram-бот</a>
+    <a href="#pricing-section">Тарифы</a>
+    <a href="https://drive.google.com/file/d/1KtmPLkBJFD_IMeYzTEqezskGOWSThoEP/view?usp=sharing" target="_blank" rel="noopener">Публичная оферта</a>
+  </div>
+  <div class="footer-links">
+    <div class="footer-title">Поддержка</div>
+    <a href="https://t.me/RizzUp_chat_bot" target="_blank" rel="noopener">Написать боту</a>
+  </div>
+</footer>
+
+<script>
+// PARTICLES
+const canvas = document.getElementById('hero-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [];
+
+function resize() {
+  const hero = document.getElementById('hero');
+  W = canvas.width = hero.offsetWidth;
+  H = canvas.height = hero.offsetHeight;
+}
+
+// Each particle has a phase offset — they never reset position, just cross-fade via sin wave
+function createParticle() {
+  const hue = 258 + Math.random() * 28;
+  const light = 55 + Math.random() * 25;
+  return {
+    x: Math.random(),       // 0..1 normalized
+    y: 0.5 + Math.random() * 0.5, // start in bottom half
+    vx: (Math.random() - 0.5) * 0.00015,
+    vy: -(0.0001 + Math.random() * 0.00025),
+    size: 1.0 + Math.random() * 2.0,
+    color: `hsl(${hue},72%,${light}%)`,
+    phase: Math.random() * Math.PI * 2,  // random start in opacity cycle
+    speed: 0.008 + Math.random() * 0.012 // opacity cycle speed
+  };
+}
+
+function initParticles(n) {
+  particles = [];
+  for (let i = 0; i < n; i++) {
+    particles.push(createParticle());
+  }
+}
+
+function animateParticles() {
+  if (W === 0 || H === 0) { requestAnimationFrame(animateParticles); return; }
+  ctx.clearRect(0, 0, W, H);
+
+  for (const p of particles) {
+    // Move in normalized space
+    p.x += p.vx;
+    p.y += p.vy;
+
+    // Wrap horizontally seamlessly
+    if (p.x < 0) p.x = 1;
+    if (p.x > 1) p.x = 0;
+
+    // When particle exits top, re-enter from bottom seamlessly
+    if (p.y < -0.05) {
+      p.y = 1.0 + Math.random() * 0.1;
+      p.x = Math.random();
+    }
+
+    // Smooth opacity via sine — no hard resets, fully continuous
+    p.phase += p.speed;
+    const alpha = (Math.sin(p.phase) * 0.5 + 0.5); // 0..1 smooth
+
+    ctx.globalAlpha = alpha * 0.5;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x * W, p.y * H, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  requestAnimationFrame(animateParticles);
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => { resize(); }, 150);
+});
+
+function startParticles() {
+  resize();
+  if (W === 0 || H === 0) { requestAnimationFrame(startParticles); return; }
+  initParticles(70);
+  animateParticles();
+}
+
+if (document.readyState === 'complete') {
+  startParticles();
+} else {
+  window.addEventListener('load', startParticles);
+}
+
+// SCROLL REVEAL
+const revealEls = document.querySelectorAll('.reveal');
+const ro = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); ro.unobserve(e.target); } });
+}, { threshold: 0.12 });
+revealEls.forEach(el => ro.observe(el));
+
+// INTERACTIVE DEMO
+const demos = [
+  {
+    msg: "Привет, чем занимаешься? 😊",
+    variants: [
+      "Думал о тебе — и ты сразу написала 😏",
+      "Ничем особенным... а ты? Давно тебя нет",
+      "Скоро освобожусь — что задумала? 😄"
+    ]
+  },
+  {
+    msg: "Ты сегодня свободен вечером?",
+    variants: [
+      "Для тебя — специально освобожусь 🙂",
+      "Зависит от предложения, давай интригуй",
+      "Есть идеи? Уже любопытно 👀"
+    ]
+  },
+  {
+    msg: "Что-то ты загадочный в последнее время",
+    variants: [
+      "Просто держу интригу 😏 Получается?",
+      "Заметила? Значит всё по плану 😄",
+      "Это случайно — или специально для тебя, ещё не решил"
+    ]
+  }
+];
+
+let isAnimating = false;
+
+document.getElementById('demo-examples').addEventListener('click', function(e) {
+  const btn = e.target.closest('.demo-ex-btn');
+  if (!btn || isAnimating) return;
+  const idx = parseInt(btn.dataset.idx);
+  runDemo(idx, btn);
+});
+
+async function runDemo(idx, btn) {
+  isAnimating = true;
+  document.querySelectorAll('.demo-ex-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const msgs = document.getElementById('tg-msgs');
+  const varPanel = document.getElementById('tg-variants-panel');
+  const chips = document.getElementById('variant-chips');
+
+  varPanel.style.display = 'none';
+  msgs.innerHTML = '';
+  chips.innerHTML = '';
+
+  const d = demos[idx];
+
+  // Incoming message
+  await delay(200);
+  const inMsg = document.createElement('div');
+  inMsg.className = 'msg msg-in';
+  inMsg.textContent = d.msg;
+  msgs.appendChild(inMsg);
+
+  // Typing
+  await delay(600);
+  const typingEl = document.createElement('div');
+  typingEl.className = 'typing-bubble';
+  typingEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  typingEl.style.alignSelf = 'flex-end';
+  msgs.appendChild(typingEl);
+
+  await delay(1400);
+  typingEl.remove();
+
+  // Show variants panel
+  varPanel.style.display = 'block';
+
+  // Chips one by one
+  for (let i = 0; i < d.variants.length; i++) {
+    const chip = document.createElement('div');
+    chip.className = 'variant-chip';
+    chip.innerHTML = `<span class="v-num">0${i+1}</span><span>${d.variants[i]}</span>`;
+    chips.appendChild(chip);
+    await delay(80);
+    chip.classList.add('shown');
+    await delay(i === 0 ? 200 : 160);
+  }
+
+  isAnimating = false;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// PRICING TOGGLE
+function switchPricing(tab) {
+  const subs = document.getElementById('pricing-subs');
+  const packs = document.getElementById('pricing-packs');
+  const togSubs = document.getElementById('tog-subs');
+  const togPacks = document.getElementById('tog-packs');
+
+  if (tab === 'subs') {
+    subs.style.display = 'grid';
+    subs.classList.add('show');
+    packs.style.display = 'none';
+    packs.classList.remove('show');
+    togSubs.classList.add('active');
+    togPacks.classList.remove('active');
+  } else {
+    packs.style.display = 'grid';
+    packs.classList.add('show');
+    subs.style.display = 'none';
+    subs.classList.remove('show');
+    togPacks.classList.add('active');
+    togSubs.classList.remove('active');
+  }
+}
+
+// FAQ
+function toggleFaq(qEl) {
+  const item = qEl.closest('.faq-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>
